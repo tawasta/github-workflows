@@ -1,0 +1,59 @@
+# .github/workflows/open-pr-to-dev.yml
+name: Reusable PR Sync Workflow
+
+on:
+  workflow_call:
+    inputs:
+      target_branch:
+        description: 'The branch to open PRs into'
+        required: true
+        type: string
+
+jobs:
+  open-pr-to-target:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install GitHub CLI (cached for faster runs)
+      - name: Setup GitHub CLI
+        uses: actions/setup-node@v3
+      - name: Install gh
+        run: |
+          if ! command -v gh >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y gh
+          fi
+
+      # Authenticate GitHub CLI
+      - name: Authenticate GitHub CLI
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+      # Create or update PR
+      - name: Create/Update PR to target branch
+        run: |
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+          TARGET_BRANCH="${{ inputs.target_branch }}"
+          echo "Creating/updating PR from $SOURCE_BRANCH to $TARGET_BRANCH"
+
+          # Check if a PR already exists
+          pr_url=$(gh pr list --base "$TARGET_BRANCH" --head "$SOURCE_BRANCH" --json url --jq '.[0].url')
+
+          if [ -z "$pr_url" ]; then
+            gh pr create \
+              --base "$TARGET_BRANCH" \
+              --head "$SOURCE_BRANCH" \
+              --title "Sync $SOURCE_BRANCH to $TARGET_BRANCH" \
+              --body "Auto-generated PR to keep $TARGET_BRANCH updated with changes from $SOURCE_BRANCH."
+          else
+            echo "PR already exists: $pr_url"
+            gh pr comment "$pr_url" \
+              --body "🔄 Sync PR updated — new changes from $SOURCE_BRANCH."
+          fi
+
