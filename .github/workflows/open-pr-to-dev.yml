@@ -47,3 +47,18 @@ jobs:
               --body "🔄 Sync PR updated — new changes from $SOURCE_BRANCH."
           fi
 
+      - name: Attempt auto-merge
+        if: always()  # always run after previous step
+        run: |
+          pr_url="${{ steps.pr.outputs.pr_url }}"
+
+          # Check if mergeable
+          mergeable=$(gh pr view "$pr_url" --json mergeable --jq .mergeable)
+          echo "Mergeable: $mergeable"
+
+          if [ "$mergeable" = "MERGEABLE" ]; then
+            echo "Auto-merging $pr_url"
+            gh pr merge "$pr_url" --merge --auto
+          else
+            echo "PR not mergeable, leaving open."
+          fi
