@@ -57,3 +57,4 @@ repos:
       - id: oca-gen-external-dependencies
       - id: oca-gen-addons-table
 
+
