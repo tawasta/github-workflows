@@ -10,7 +10,7 @@ on:
 
 jobs:
   open-pr-to-dev:
-    if: github.head_ref != '17.0-dev'
+    if: ${{ github.ref_name != inputs.target_branch && github.ref_name != '17.0-dev' }}
     runs-on: ubuntu-latest
 
     permissions:
