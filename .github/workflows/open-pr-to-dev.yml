@@ -29,38 +29,41 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
       - name: Create or update PR
+        id: pr_step
         run: |
           SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
           TARGET_BRANCH="${{ inputs.target_branch }}"
-          echo "Creating/updating PR from $SOURCE_BRANCH to $TARGET_BRANCH"
 
-          # Check if PR already exists
+          # Check if PR exists
           pr_url=$(gh pr list --base "$TARGET_BRANCH" --head "$SOURCE_BRANCH" --json url --jq '.[0].url')
 
           if [ -z "$pr_url" ]; then
-            gh pr create \
+            pr_url=$(gh pr create \
               --base "$TARGET_BRANCH" \
               --head "$SOURCE_BRANCH" \
-              --title "Sync $SOURCE_BRANCH to $TARGET_BRANCH" \
-              --body "Auto-generated PR to keep $TARGET_BRANCH updated with changes from $SOURCE_BRANCH."
+              --title "Sync $SOURCE_BRANCH → $TARGET_BRANCH" \
+              --body "Auto-generated sync PR." \
+              --json url \
+              --jq .url)
           else
-            echo "PR already exists: $pr_url"
-            gh pr comment "$pr_url" \
-              --body "🔄 Sync PR updated — new changes from $SOURCE_BRANCH."
+            gh pr comment "$pr_url" --body "🔄 Sync PR updated."
           fi
 
-      - name: Attempt auto-merge
-        if: always()  # always run after previous step
-        run: |
-          pr_url="${{ steps.pr.outputs.pr_url }}"
+          echo "pr_url=$pr_url" >> $GITHUB_OUTPUT
 
-          # Check if mergeable
+      - name: Attempt auto-merge
+        run: |
+          pr_url="${{ steps.pr_step.outputs.pr_url }}"
+
+          if [ -z "$pr_url" ]; then
+            echo "No PR URL found, skipping auto-merge."
+            exit 0
+          fi
+
           mergeable=$(gh pr view "$pr_url" --json mergeable --jq .mergeable)
-          echo "Mergeable: $mergeable"
 
           if [ "$mergeable" = "MERGEABLE" ]; then
-            echo "Auto-merging $pr_url"
             gh pr merge "$pr_url" --merge --auto
           else
-            echo "PR not mergeable, leaving open."
+            echo "PR is not mergeable."
           fi
