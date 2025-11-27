@@ -32,22 +32,22 @@ jobs:
         run: |
           SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
           TARGET_BRANCH="${{ inputs.target_branch }}"
-
+      
           # Check if PR exists
           pr_url=$(gh pr list --base "$TARGET_BRANCH" --head "$SOURCE_BRANCH" --json url --jq '.[0].url')
-
+      
           if [ -z "$pr_url" ]; then
+            # Create PR and capture last line of output
             pr_url=$(gh pr create \
               --base "$TARGET_BRANCH" \
               --head "$SOURCE_BRANCH" \
               --title "Sync $SOURCE_BRANCH → $TARGET_BRANCH" \
               --body "Auto-generated sync PR." \
-              --json url \
-              --jq .url)
+              | tail -n1)
           else
             gh pr comment "$pr_url" --body "🔄 Sync PR updated."
           fi
-
+      
           echo "pr_url=$pr_url" >> $GITHUB_OUTPUT
 
       - name: Attempt auto-merge
