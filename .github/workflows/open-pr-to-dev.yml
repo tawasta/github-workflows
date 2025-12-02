@@ -9,7 +9,12 @@ on:
         type: string
 
 jobs:
+  run-pre-commit:
+    uses: ./.github/workflows/pre-commit.yml
+    secrets: inherit
+
   open-pr-to-dev:
+    needs: run-pre-commit # Wait for pre-commit to finish
     if: ${{ github.ref_name != inputs.target_branch && github.ref_name != '17.0-dev' }}
     runs-on: ubuntu-latest
 
