@@ -10,7 +10,7 @@ on:
 
 jobs:
   run-pre-commit:
-    uses: ./.github/workflows/pre-commit.yml
+    uses: ./.github/workflows/odoo-pre-commit.yml
     secrets: inherit
 
   open-pr-to-dev:
