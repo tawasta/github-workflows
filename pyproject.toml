@@ -1,2 +1,3 @@
 [project.scripts]
+version = 1.0.0
 ensure-finnish-translation = "hooks.ensure_finnish_translation:main"
