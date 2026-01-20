@@ -1,0 +1,8 @@
+- id: ensure-finnish-translation
+  name: Ensure Finnish translation
+  description: Ensure Finnish translation of Odoo module exists
+  entry: ensure-finnish-translation
+  language: python
+  types: [python]
+  stages: [pre-commit, pre-merge-commit, manual]
+  pass_filenames: false
