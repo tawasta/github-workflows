@@ -1,4 +1,5 @@
-[project.scripts]
+[project]
+name = "github-workflows"
 version = "1.0.0"
-requires = ["whool"]
+[project.scripts]
 ensure-finnish-translation = "hooks.ensure_finnish_translation:main"
