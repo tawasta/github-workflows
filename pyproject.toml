@@ -1,0 +1,2 @@
+[project.scripts]
+ensure-finnish-translation = "hooks.ensure_finnish_translation:main"

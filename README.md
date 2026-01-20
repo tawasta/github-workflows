@@ -8,20 +8,20 @@ This repository contains reusable GitHub Actions workflows designed to streamlin
 
 ### `odoo-build-test.yml` - Build and Test Odoo
 
-**Purpose:**  
+**Purpose:**
 Automates module testing and dependency checks
 
 ---
 
 ### `odoo-pre-commit.yml` - Run Pre-Commit Hooks
 
-**Purpose:**  
+**Purpose:**
 Runs `pre-commit` checks on all files to enforce coding standards.
 
 ---
 
 ### `open-pr-to-dev.yml` - Auto-Open PRs to Dev Branch
 
-**Purpose:**  
+**Purpose:**
 Automatically opens or updates pull requests from feature branches into a target development branch and attempts auto-merge.
 
