@@ -1,4 +1,5 @@
 - id: ensure-finnish-translation
+  version: 1.0.0
   name: Ensure Finnish translation
   description: Ensure Finnish translation of Odoo module exists
   entry: ensure-finnish-translation
