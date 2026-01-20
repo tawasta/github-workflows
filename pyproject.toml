@@ -3,3 +3,4 @@ name = "github-workflows"
 version = "1.0.0"
 [project.scripts]
 ensure-finnish-translation = "hooks.ensure_finnish_translation:main"
+ensure-module-icon = "hooks.ensure_module_icon:main"
