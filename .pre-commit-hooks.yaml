@@ -6,3 +6,11 @@
   types: [python]
   stages: [pre-commit, pre-merge-commit, manual]
   pass_filenames: false
+- id: ensure-module-icon
+  name: Ensure Module Icon
+  description: Ensure Odoo module has icon file at static/description/icon.png
+  entry: ensure-module-icon
+  language: python
+  types: [python]
+  stages: [pre-commit, pre-merge-commit, manual]
+  pass_filenames: false
