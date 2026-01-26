@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import hashlib
 
-futural_icon_hash = "37df1da0aba9f7e5efabba1b3ddf5021"
+tawasta_icon_hash = "37df1da0aba9f7e5efabba1b3ddf5021"
 
 PASS = 0
 FAIL = 1
@@ -16,12 +16,13 @@ def main() -> int:
         manifest_file = Path(d + "/__manifest__.py")
         if manifest_file.is_file():
             icon_file = Path(d + "/static/description/icon.png")
-            if (icon_file.is_file()
-                and hashlib.md5(open(icon_file,'rb').read()).hexdigest() == futural_icon_hash)
-                pass
-            else:
+            if not icon_file.is_file():
                 exit_code = FAIL
                 print("Module " + d + " is missing static/description/icon.png")
+            if hashlib.md5(open(icon_file,'rb').read()).hexdigest() == tawasta_icon_hash:
+                exit_code = FAIL
+                print("Module " + d + " has old static/description/icon.png")
+            else:
 
     return exit_code
 
