@@ -2,11 +2,7 @@ name: tests
 
 on:
   workflow_call:
-    branches:
-      - "19.0*"
   workflow_dispatch:
-    branches:
-      - "19.0*"
   pull_request:
     branches:
       - "19.0*"
