@@ -22,7 +22,6 @@ def main() -> int:
             if hashlib.md5(open(icon_file,'rb').read()).hexdigest() == tawasta_icon_hash:
                 exit_code = FAIL
                 print("Module " + d + " has old static/description/icon.png")
-            else:
 
     return exit_code
 
