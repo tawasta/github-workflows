@@ -1,11 +1,13 @@
 name: tests
 
 on:
-  workflow_dispatch:
   workflow_call:
+  pull_request:
+    branches:
+      - "17.0*"
   push:
     branches:
-      - "19*"
+      - "17.0"
 jobs:
   unreleased-deps:
     runs-on: ubuntu-latest
@@ -32,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - container: ghcr.io/oca/oca-ci/py3.10-odoo19.0:latest
+          - container: ghcr.io/oca/oca-ci/py3.10-odoo17.0:latest
             name: test with Odoo
     services:
       postgres:
