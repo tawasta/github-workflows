@@ -57,6 +57,8 @@ jobs:
         run: manifestoo -d . check-dev-status --default-dev-status=Beta
       - name: Initialize test db
         run: oca_init_test_database
+      - name: Debug
+        run: ls
       - name: Make sure tests are run with demo data
         run: sed -i 's/--test-enable/--test-enable --with-demo/' bin/oca_run_tests
       - name: Run tests
