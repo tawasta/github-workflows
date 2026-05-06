@@ -34,7 +34,9 @@ jobs:
         run: pre-commit run --all-files
 
       - name: Print README.md
+        if: always()
         run: cat README.md || true
 
       - name: Git diff in case pre-commit changed files
+        if: always()
         run: git diff || true
