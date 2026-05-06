@@ -36,3 +36,5 @@ jobs:
       - name: Print README.md
         run: cat README.md || true
 
+      - name: Git diff in case pre-commit changed files
+        run: git diff || true
