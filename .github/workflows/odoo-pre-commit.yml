@@ -33,3 +33,6 @@ jobs:
       - name: Run pre-commit
         run: pre-commit run --all-files
 
+      - name: Print README.md
+        run: cat README.md || true
+
