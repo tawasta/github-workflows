@@ -1,0 +1,50 @@
+name: Module version change check
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    branches:
+      - 19.0
+
+jobs:
+  check_module_versions:
+    runs-on: ubuntu-latest
+    name: Check module versions
+    steps:
+      - uses: actions/checkout@v7
+      - name: Init
+        id: changed-files
+        with:
+          dir_names: true
+          dir_names_exclude_current_dir: true
+          dir_names_max_depth: 1
+          files_ignore: ".*"
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96
+      - name: Ensure module versions changed
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          git clone https://github.com/${{github.repository}} --branch=19.0 --depth=1 main
+          for dir in ${ALL_CHANGED_FILES}; do
+            echo "A file in module directory ${dir} has changed"
+            if [ -f "${dir}/__manifest__.py" ]; then
+              echo "Found __manifest__.py in ${dir}"
+              version_in_branch=$(grep 'version' "${dir}/__manifest__.py" | awk '{print($2)}')
+              echo "Version ${version_in_branch} in module ${dir}"
+              version_in_main=$(grep 'version' "main/${dir}/__manifest__.py" 2>/dev/null | awk '{print($2)}' || echo "")
+              echo "Version ${version_in_main} in main"
+              if [ "${version_in_branch}" = "${version_in_main}" ]; then
+                echo "Versions match! Aborting!"
+                exit 1
+              else
+                echo "Versions do not match, everything okay."
+              fi
+            fi
+          done
+
+
+
