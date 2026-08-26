@@ -46,7 +46,7 @@ jobs:
                 echo "Versions match in branch 19.0 and ${BRANCH_NAME} for module ${dir}! Aborting!"
                 exit 1
               else
-                echo "Versions for 19.0 and ${BRANCH_NAME} match for module ${dir}, everything okay."
+                echo "Versions for 19.0 and ${BRANCH_NAME} do not match for module ${dir}, everything okay."
               fi
             fi
           done
