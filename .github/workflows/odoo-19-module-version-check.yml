@@ -27,6 +27,7 @@ jobs:
       - name: Ensure module versions changed
         env:
           ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
         run: |
           git clone https://github.com/${{github.repository}} --branch=19.0 --depth=1 main
           for dir in ${ALL_CHANGED_FILES}; do
@@ -34,14 +35,18 @@ jobs:
             if [ -f "${dir}/__manifest__.py" ]; then
               echo "Found __manifest__.py in ${dir}"
               version_in_branch=$(grep 'version' "${dir}/__manifest__.py" | awk '{print($2)}')
-              echo "Version ${version_in_branch} in module ${dir}"
+              echo "Branch ${BRANCH_NAME} has version ${version_in_branch} in module ${dir}"
               version_in_main=$(grep 'version' "main/${dir}/__manifest__.py" 2>/dev/null | awk '{print($2)}' || echo "")
-              echo "Version ${version_in_main} in main"
+              if [ "${version_in_main}" = "" ]; then
+                echo "Branch 19.0 has no version for this module"
+              else
+                echo "Branch 19.0 has version ${version_in_main}"
+              fi
               if [ "${version_in_branch}" = "${version_in_main}" ]; then
-                echo "Versions match! Aborting!"
+                echo "Versions match in branch 19.0 and ${BRANCH_NAME} for module ${dir}! Aborting!"
                 exit 1
               else
-                echo "Versions do not match, everything okay."
+                echo "Versions for 19.0 and ${BRANCH_NAME} match for module ${dir}, everything okay."
               fi
             fi
           done
