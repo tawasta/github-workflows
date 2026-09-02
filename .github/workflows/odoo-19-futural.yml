@@ -1,0 +1,185 @@
+name: Futural
+
+jobs:
+  unreleased-deps:
+    runs-on: ubuntu-latest
+    name: Detect unreleased dependencies
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          for reqfile in requirements.txt test-requirements.txt ; do
+              if [ -f ${reqfile} ] ; then
+                  result=0
+                  # reject non-comment lines that contain a / (i.e. URLs, relative paths)
+                  grep "^[^#].*/" ${reqfile} || result=$?
+                  if [ $result -eq 0 ] ; then
+                      echo "Unreleased dependencies found in ${reqfile}."
+                      exit 1
+                  fi
+              fi
+          done
+  build-test:
+    runs-on: ubuntu-24.04
+    container: ${{ matrix.container }}
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: ghcr.io/oca/oca-ci/py3.10-odoo19.0:latest
+            name: test with Odoo
+    services:
+      postgres:
+        image: postgres:16.0
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: odoo
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Add workflow-requirements.txt into test-requirements.txt
+        run: if [ -f workflow-requirements.txt ]; then cat workflow-requirements.txt >> test-requirements.txt; fi
+      - name: Install addons and dependencies
+        run: oca_install_addons
+      - name: Check licenses
+        run: manifestoo -d . check-licenses
+      - name: Check development status
+        run: manifestoo -d . check-dev-status --default-dev-status=Beta
+      - name: Make sure database is initialized with demo data
+        run: sed -i 's/--stop-after-init/--stop-after-init --with-demo/' $(which oca_init_test_database)
+      - name: Initialize test db
+        run: oca_init_test_database
+      - name: Run tests
+        run: oca_run_tests
+      - uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Update .pot files
+        run: oca_export_and_push_pot https://x-access-token:${{ secrets.GIT_PUSH_TOKEN }}@github.com/${{ github.repository }}
+        if: ${{ matrix.makepot == 'true' && github.event_name == 'push' && github.repository_owner == 'OCA' }}
+  check_module_versions:
+    runs-on: ubuntu-latest
+    name: Check module versions
+    steps:
+      - uses: actions/checkout@v7
+      - name: Init
+        id: changed-files
+        with:
+          dir_names: true
+          dir_names_exclude_current_dir: true
+          dir_names_max_depth: 1
+          files_ignore: ".*"
+        uses: tj-actions/changed-files@9426d40962ed5378910ee2e21d5f8c6fcbf2dd96
+      - name: Ensure module versions changed
+        env:
+          ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }} 
+        run: |
+          git clone https://github.com/${{github.repository}} --branch=19.0 --depth=1 main
+          for dir in ${ALL_CHANGED_FILES}; do
+            echo "A file in module directory ${dir} has changed"
+            if [ -f "${dir}/__manifest__.py" ]; then
+              echo "Found __manifest__.py in ${dir}"
+              version_in_branch=$(grep '"version"' "${dir}/__manifest__.py" | awk -F '"' '{print($4)}')
+              echo "Branch ${BRANCH_NAME} has version ${version_in_branch} in module ${dir}"
+              version_in_main=$(grep '"version"' "main/${dir}/__manifest__.py" 2>/dev/null | awk -F '"' '{print($4)}' || echo "")
+              if [ "${version_in_main}" = "" ]; then
+                echo "Branch 19.0 has no version for this module"
+              else
+                echo "Branch 19.0 has version ${version_in_main}"
+              fi
+              if [ "${version_in_branch}" = "${version_in_main}" ]; then
+                echo "Versions match in branch 19.0 and ${BRANCH_NAME} for module ${dir}! Aborting!"
+                exit 1
+              else
+                echo "Versions for 19.0 and ${BRANCH_NAME} do not match for module ${dir}, everything okay."
+              fi
+            fi
+          done
+  pre-commit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit
+        run: pre-commit run --all-files
+
+      - name: Print README.md
+        if: always()
+        run: cat README.md || true
+
+      - name: Git diff in case pre-commit changed files
+        if: always()
+        run: git diff || true
+  open-pr-to-dev:
+    needs: run-pre-commit # Wait for pre-commit to finish
+    if: ${{ github.ref_name != inputs.target_branch && github.ref_name != '19.0-dev' }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI
+        run: sudo apt-get update && sudo apt-get install -y gh
+
+      - name: Authenticate GitHub CLI
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+      - name: Create or update PR
+        run: |
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+          TARGET_BRANCH="${{ inputs.target_branch }}"
+          echo "Creating/updating PR from $SOURCE_BRANCH to $TARGET_BRANCH"
+
+          # Check if PR already exists
+          pr_url=$(gh pr list --base "$TARGET_BRANCH" --head "$SOURCE_BRANCH" --json url --jq '.[0].url')
+
+          if [ -z "$pr_url" ]; then
+            gh pr create \
+              --base "$TARGET_BRANCH" \
+              --head "$SOURCE_BRANCH" \
+              --title "Sync $SOURCE_BRANCH to $TARGET_BRANCH" \
+              --body "Auto-generated PR to keep $TARGET_BRANCH updated with changes from $SOURCE_BRANCH."
+          else
+            echo "PR already exists: $pr_url"
+            gh pr comment "$pr_url" \
+              --body "🔄 Sync PR updated — new changes from $SOURCE_BRANCH."
+          fi
+
+      - name: Attempt auto-merge
+        if: always()  # always run after previous step
+        run: |
+          pr_url="${{ steps.pr.outputs.pr_url }}"
+
+          # Check if mergeable
+          mergeable=$(gh pr view "$pr_url" --json mergeable --jq .mergeable)
+          echo "Mergeable: $mergeable"
+
+          if [ "$mergeable" = "MERGEABLE" ]; then
+            echo "Auto-merging $pr_url"
+            gh pr merge "$pr_url" --merge --auto
+          else
+            echo "PR not mergeable, leaving open."
+          fi
+
