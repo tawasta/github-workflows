@@ -1,0 +1,41 @@
+flowchart LR
+
+    %% Main stable branch
+    A17["17.0"]
+
+    %% Minor Feature Workflow
+    subgraph MINOR_FEATURE ["Minor Feature"]
+        MF["17.0-T123-module_name-description"]
+        MF_PR[["PR → 17.0"]]
+    end
+
+    %% Major Feature Workflow
+    subgraph MAJOR_FEATURE ["Major Feature"]
+        MFF["17.0-T123-module_name-description"]
+        MFF_PR_DEV[["PR → 17.0-dev"]]
+        A17DEV["17.0-dev"]
+        MFF_PR[["PR → 17.0"]]
+        
+        %% Note inside Major Feature
+        N1["17.0-dev is forward-only branch<br/>Used for testing in customer environments<br/>Never merged back into 17.0"]
+    end
+
+    %% Connections: Minor features
+    A17 -->|Fork| MF --> MF_PR -->|CI pipeline| A17
+
+    %% Connections: Major features
+    A17 -->|Fork| MFF
+    MFF --> MFF_PR_DEV --> A17DEV
+    MFF --> MFF_PR -->|CI pipeline| A17
+
+    %% Styling with classDef
+    classDef minorFeature fill:#e0f7fa,stroke:#00acc1,color:#000,font-size:12px;
+    classDef majorFeature fill:#fff3e0,stroke:#fb8c00,color:#000,font-size:12px;
+    classDef devBranch fill:#fce4ec,stroke:#ec407a,color:#000,font-size:12px;
+    classDef note fill:#f7f7f7,stroke:#ccc,color:#333,font-size:12px;
+
+    %% Assign classes
+    class MF,MF_PR minorFeature;
+    class MFF,MFF_PR_DEV,MFF_PR majorFeature;
+    class A17DEV devBranch;
+    class N1 note;
