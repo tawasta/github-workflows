@@ -27,6 +27,9 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
       - name: Install pre-commit
         run: pip install pre-commit
 
